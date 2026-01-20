@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Fast Mobile Iframe</title>
+<title>Mobile Search Frame</title>
 
 <style>
 :root {
-    --darkness: 0.35; /* overlay opacity */
+    --darkness: 0.35;
 }
 
 * {
@@ -23,21 +23,21 @@ body {
     overflow: hidden;
 }
 
-/* Container */
+/* Frame container */
 #frame-container {
     position: fixed;
     inset: 0;
     background: black;
 }
 
-/* Iframe — NO FILTER (important) */
+/* Iframe (NO filters for performance) */
 iframe {
     width: 100%;
     height: 100%;
     border: none;
 }
 
-/* Darkness Overlay (FAST) */
+/* Darkness overlay (fast) */
 #dark-overlay {
     position: absolute;
     inset: 0;
@@ -46,21 +46,21 @@ iframe {
     z-index: 5;
 }
 
-/* Controls */
+/* Bottom controls (mobile-first) */
 .controls {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     padding: 8px;
-    background: rgba(18,18,18,0.95);
+    background: rgba(18, 18, 18, 0.95);
     display: flex;
     gap: 8px;
     align-items: center;
     z-index: 10;
 }
 
-input {
+input[type="text"] {
     flex: 1;
     padding: 12px;
     font-size: 16px;
@@ -99,33 +99,56 @@ button {
 </div>
 
 <div class="controls">
-    <input id="url" value="https://example.com">
-    <button onclick="loadSite()">➡️</button>
+    <input
+        id="searchInput"
+        placeholder="Search…"
+        autofocus
+    >
+    <button onclick="loadSearch()">🔍</button>
     <button onclick="toggleUI()">⛶</button>
-    <input type="range" min="0" max="0.6" step="0.05" value="0.35" oninput="setDark(this.value)">
+    <input
+        type="range"
+        min="0"
+        max="0.6"
+        step="0.05"
+        value="0.35"
+        oninput="setDark(this.value)"
+    >
 </div>
 
 <script>
 const frame = document.getElementById("frame");
-const urlInput = document.getElementById("url");
+const input = document.getElementById("searchInput");
 const body = document.body;
 
-function loadSite() {
-    let url = urlInput.value.trim();
-    if (!url.startsWith("http")) url = "https://" + url;
-    frame.src = url;
+/* 🔧 CHANGE THIS TO YOUR SITE */
+const BASE_SEARCH_URL = "https://hianime.to/search?keyword=";
+
+/* Load search */
+function loadSearch() {
+    const query = input.value.trim();
+    if (!query) return;
+
+    // Encode query: spaces → +, symbols safe
+    const encoded = encodeURIComponent(query).replace(/%20/g, "+");
+
+    frame.src = BASE_SEARCH_URL + encoded;
 }
 
+/* Darkness control */
 function setDark(val) {
     document.documentElement.style.setProperty("--darkness", val);
 }
 
+/* Pseudo fullscreen */
 function toggleUI() {
     body.classList.toggle("fullscreen");
 }
 
-/* Load default */
-loadSite();
+/* Enter key triggers search */
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") loadSearch();
+});
 </script>
 
 </body>
