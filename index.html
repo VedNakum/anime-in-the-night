@@ -1,82 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Darkened Mobile Search Frame</title>
-    <style>
-        :root { --bg-color: #121212; --text-color: #ffffff; }
-        body { margin: 0; background: var(--bg-color); color: var(--text-color); font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
-        
-        /* Search UI */
-        .controls { padding: 10px; display: flex; gap: 8px; background: #1a1a1a; border-bottom: 1px solid #333; }
-        input { flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
-        button { padding: 10px 15px; border: none; border-radius: 4px; background: #3498db; color: white; cursor: pointer; }
-        
-        /* The Iframe Wrapper & Dark Filter */
-        #frame-container { position: relative; flex: 1; background: black; overflow: hidden; }
-        iframe {
-            width: 100%; height: 100%; border: none;
-            filter: brightness(0.6) contrast(1.1); /* This makes the website darker */
-            transition: filter 0.3s ease;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Dark Iframe Browser</title>
 
-        /* Fullscreen Styling */
-        #frame-container:fullscreen { width: 100vw; height: 100vh; }
-        #frame-container:fullscreen iframe { filter: brightness(1); } /* Optional: auto-brighten in fullscreen */
-        
-        /* Pseudo-Fullscreen fallback for Mobile iOS */
-        .pseudo-fullscreen {
-            position: fixed !important; top: 0; left: 0; 
-            width: 100vw !important; height: 100vh !important; 
-            z-index: 9999;
-        }
-    </style>
+<style>
+:root {
+    --brightness: 0.6;
+}
+
+body {
+    margin: 0;
+    background: #121212;
+    color: white;
+    font-family: sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Controls */
+.controls {
+    padding: 10px;
+    display: flex;
+    gap: 8px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+    background: #222;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+button {
+    padding: 10px 14px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+label {
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Frame */
+#frame-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: black;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    filter: brightness(var(--brightness)) contrast(1.1);
+    transition: filter 0.2s ease;
+}
+
+/* Fullscreen */
+#frame-container:fullscreen {
+    width: 100vw;
+    height: 100vh;
+}
+</style>
 </head>
+
 <body>
 
-    <div class="controls">
-        <input type="text" id="urlInput" placeholder="Enter URL (e.g. https://example.com)" value="https://example.com">
-        <button onclick="loadSite()">Go</button>
-        <button onclick="toggleFullscreen()">⛶ Full</button>
-    </div>
+<div class="controls">
+    <input id="urlInput" placeholder="https://example.com" value="https://example.com">
+    <button onclick="loadSite()">Go</button>
+    <button onclick="toggleFullscreen()">⛶</button>
 
-    <div id="frame-container">
-        <iframe id="targetFrame" src="https://example.com" allowfullscreen></iframe>
-    </div>
+    <label>
+        🌙
+        <input type="range" min="0.3" max="1" step="0.05" value="0.6" oninput="setDarkness(this.value)">
+    </label>
+</div>
 
-    <script>
-        const container = document.getElementById('frame-container');
-        const frame = document.getElementById('targetFrame');
-        const input = document.getElementById('urlInput');
+<div id="frame-container">
+    <iframe
+        id="targetFrame"
+        sandbox="allow-same-origin allow-forms allow-scripts"
+        referrerpolicy="no-referrer"
+    ></iframe>
+</div>
 
-        // Load new site from search bar
-        function loadSite() {
-            let url = input.value.trim();
-            if (!url.startsWith('http')) url = 'https://' + url;
-            frame.src = url;
-        }
+<script>
+const frame = document.getElementById("targetFrame");
+const input = document.getElementById("urlInput");
 
-        // Fullscreen Toggle (Native + Mobile Fallback)
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                if (container.requestFullscreen) {
-                    container.requestFullscreen();
-                } else if (container.webkitRequestFullscreen) { /* Safari/iOS */
-                    container.webkitRequestFullscreen();
-                } else {
-                    // Manual pseudo-fullscreen for stubborn mobile browsers
-                    container.classList.toggle('pseudo-fullscreen');
-                }
-            } else {
-                document.exitFullscreen();
-            }
-        }
+/* 🚫 Basic Ad / Tracker Domain Blocklist */
+const BLOCKED_DOMAINS = [
+    "doubleclick.net",
+    "googlesyndication.com",
+    "adsystem.com",
+    "adservice.google.com",
+    "taboola.com",
+    "outbrain.com",
+    "popads.net",
+    "propellerads.com"
+];
 
-        // Allow 'Enter' key to trigger search
-        input.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") loadSite();
-        });
-    </script>
+function isBlocked(url) {
+    try {
+        const host = new URL(url).hostname;
+        return BLOCKED_DOMAINS.some(d => host.includes(d));
+    } catch {
+        return true;
+    }
+}
+
+/* Load Site With Blocking */
+function loadSite() {
+    let url = input.value.trim();
+    if (!url.startsWith("http")) url = "https://" + url;
+
+    if (isBlocked(url)) {
+        alert("Blocked: Ad / redirect domain detected.");
+        return;
+    }
+
+    frame.src = url;
+}
+
+/* Darkness Control */
+function setDarkness(val) {
+    document.documentElement.style.setProperty("--brightness", val);
+}
+
+/* Fullscreen */
+function toggleFullscreen() {
+    const container = document.getElementById("frame-container");
+    if (!document.fullscreenElement) {
+        container.requestFullscreen?.();
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+/* Prevent iframe from hijacking top page */
+window.addEventListener("message", e => {
+    if (e.data === "redirect") {
+        console.warn("Blocked iframe redirect attempt");
+    }
+});
+
+/* Enter to load */
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") loadSite();
+});
+
+/* Initial load */
+loadSite();
+</script>
+
 </body>
 </html>
