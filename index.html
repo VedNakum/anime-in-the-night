@@ -2,169 +2,129 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Secure Dark Iframe Browser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Fast Mobile Iframe</title>
 
 <style>
 :root {
-    --brightness: 0.6;
+    --darkness: 0.35; /* overlay opacity */
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     margin: 0;
-    background: #121212;
-    color: white;
-    font-family: sans-serif;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Controls */
-.controls {
-    padding: 10px;
-    display: flex;
-    gap: 8px;
-    background: #1a1a1a;
-    border-bottom: 1px solid #333;
-}
-
-input {
-    flex: 1;
-    padding: 10px;
-    background: #222;
-    color: white;
-    border: 1px solid #444;
-    border-radius: 4px;
-}
-
-button {
-    padding: 10px 14px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-label {
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/* Frame */
-#frame-container {
-    flex: 1;
-    position: relative;
+    height: 100svh;
+    background: black;
+    font-family: system-ui, sans-serif;
     overflow: hidden;
+}
+
+/* Container */
+#frame-container {
+    position: fixed;
+    inset: 0;
     background: black;
 }
 
+/* Iframe — NO FILTER (important) */
 iframe {
     width: 100%;
     height: 100%;
     border: none;
-    filter: brightness(var(--brightness)) contrast(1.1);
-    transition: filter 0.2s ease;
 }
 
-/* Fullscreen */
-#frame-container:fullscreen {
-    width: 100vw;
-    height: 100vh;
+/* Darkness Overlay (FAST) */
+#dark-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--darkness));
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Controls */
+.controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px;
+    background: rgba(18,18,18,0.95);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    z-index: 10;
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+    background: #222;
+    color: white;
+}
+
+button {
+    padding: 12px 14px;
+    font-size: 18px;
+    border-radius: 10px;
+    border: none;
+    background: #3498db;
+    color: white;
+}
+
+/* Hide UI = pseudo fullscreen */
+.fullscreen .controls {
+    display: none;
 }
 </style>
 </head>
 
 <body>
 
-<div class="controls">
-    <input id="urlInput" placeholder="https://example.com" value="https://example.com">
-    <button onclick="loadSite()">Go</button>
-    <button onclick="toggleFullscreen()">⛶</button>
-
-    <label>
-        🌙
-        <input type="range" min="0.3" max="1" step="0.05" value="0.6" oninput="setDarkness(this.value)">
-    </label>
-</div>
-
 <div id="frame-container">
     <iframe
-        id="targetFrame"
-        sandbox="allow-same-origin allow-forms allow-scripts"
+        id="frame"
+        loading="eager"
+        sandbox="allow-scripts allow-forms"
         referrerpolicy="no-referrer"
     ></iframe>
+    <div id="dark-overlay"></div>
+</div>
+
+<div class="controls">
+    <input id="url" value="https://example.com">
+    <button onclick="loadSite()">➡️</button>
+    <button onclick="toggleUI()">⛶</button>
+    <input type="range" min="0" max="0.6" step="0.05" value="0.35" oninput="setDark(this.value)">
 </div>
 
 <script>
-const frame = document.getElementById("targetFrame");
-const input = document.getElementById("urlInput");
+const frame = document.getElementById("frame");
+const urlInput = document.getElementById("url");
+const body = document.body;
 
-/* 🚫 Basic Ad / Tracker Domain Blocklist */
-const BLOCKED_DOMAINS = [
-    "doubleclick.net",
-    "googlesyndication.com",
-    "adsystem.com",
-    "adservice.google.com",
-    "taboola.com",
-    "outbrain.com",
-    "popads.net",
-    "propellerads.com"
-];
-
-function isBlocked(url) {
-    try {
-        const host = new URL(url).hostname;
-        return BLOCKED_DOMAINS.some(d => host.includes(d));
-    } catch {
-        return true;
-    }
-}
-
-/* Load Site With Blocking */
 function loadSite() {
-    let url = input.value.trim();
+    let url = urlInput.value.trim();
     if (!url.startsWith("http")) url = "https://" + url;
-
-    if (isBlocked(url)) {
-        alert("Blocked: Ad / redirect domain detected.");
-        return;
-    }
-
     frame.src = url;
 }
 
-/* Darkness Control */
-function setDarkness(val) {
-    document.documentElement.style.setProperty("--brightness", val);
+function setDark(val) {
+    document.documentElement.style.setProperty("--darkness", val);
 }
 
-/* Fullscreen */
-function toggleFullscreen() {
-    const container = document.getElementById("frame-container");
-    if (!document.fullscreenElement) {
-        container.requestFullscreen?.();
-    } else {
-        document.exitFullscreen();
-    }
+function toggleUI() {
+    body.classList.toggle("fullscreen");
 }
 
-/* Prevent iframe from hijacking top page */
-window.addEventListener("message", e => {
-    if (e.data === "redirect") {
-        console.warn("Blocked iframe redirect attempt");
-    }
-});
-
-/* Enter to load */
-input.addEventListener("keydown", e => {
-    if (e.key === "Enter") loadSite();
-});
-
-/* Initial load */
+/* Load default */
 loadSite();
 </script>
 
